@@ -33,18 +33,18 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   // Text field controllers
-  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _productController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
 
-  final CollectionReference _products =
-      FirebaseFirestore.instance.collection('products');
+  final CollectionReference _inventory =
+      FirebaseFirestore.instance.collection('inventory');
 
   Future<void> _createOrUpdate([DocumentSnapshot? documentSnapshot]) async {
     String action = 'create';
     if (documentSnapshot != null) {
       action = 'update';
-      _nameController.text = documentSnapshot['name'];
+      _productController.text = documentSnapshot['product'];
       _priceController.text = documentSnapshot['price'].toString();
     }
 
@@ -64,8 +64,8 @@ class _HomePageState extends State<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
+                controller: _productController,
+                decoration: const InputDecoration(labelText: 'product'),
               ),
               TextField(
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -76,21 +76,21 @@ class _HomePageState extends State<HomePage> {
               ElevatedButton(
                 child: Text(action == 'create' ? 'Create' : 'Update'),
                 onPressed: () async {
-                  String name = _nameController.text;
+                  String product = _productController.text;
                   double? price = double.tryParse(_priceController.text);
-                  if (name.isNotEmpty && price != null) {
+                  if (product.isNotEmpty && price != null) {
                     if (action == 'create') {
                       // Persist a new product to Firestore
-                      await _products.add({"name": name, "price": price});
+                      await _inventory.add({"product": product, "price": price});
                     } else if (action == 'update') {
                       // Update the product
-                      await _products.doc(documentSnapshot!.id).update({
-                        "name": name,
+                      await _inventory.doc(documentSnapshot!.id).update({
+                        "product": product,
                         "price": price,
                       });
                     }
 
-                    _nameController.clear();
+                    _productController.clear();
                     _priceController.clear();
 
                     Navigator.of(context).pop();
@@ -106,7 +106,7 @@ class _HomePageState extends State<HomePage> {
 
   // Deleting a product by id
   Future<void> _deleteProduct(String productId) async {
-    await _products.doc(productId).delete();
+    await _inventory.doc(productId).delete();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('You have successfully deleted a product'),
@@ -126,7 +126,7 @@ class _HomePageState extends State<HomePage> {
             child: TextField(
               controller: _searchController,
               decoration: const InputDecoration(
-                labelText: 'Search by name',
+                labelText: 'Search by product',
               ),
               onChanged: (value) {
                 setState(() {});
@@ -136,12 +136,12 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _products.snapshots(),
+        stream: _inventory.snapshots(),
         builder: (context, streamSnapshot) {
           if (streamSnapshot.hasData) {
             final filter = streamSnapshot.data!.docs.where((doc) {
-              final name = doc['name'].toString();
-              return name.contains(_searchController.text);
+              final product = doc['product'].toString();
+              return product.contains(_searchController.text);
             }).toList();
 
             return ListView.builder(
@@ -151,7 +151,7 @@ class _HomePageState extends State<HomePage> {
                 return Card(
                   margin: const EdgeInsets.all(10),
                   child: ListTile(
-                    title: Text(documentSnapshot['name']),
+                    title: Text(documentSnapshot['product']),
                     subtitle: Text(documentSnapshot['price'].toString()),
                     trailing: SizedBox(
                       width: 100,
